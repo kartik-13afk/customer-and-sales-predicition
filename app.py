@@ -26,6 +26,15 @@ from src.recommendations.engine import (
 app = Flask(__name__)
 app.config.from_object(config)
 
+# If running on Vercel serverless, sync precomputed assets to writable /tmp
+if getattr(config, 'IS_VERCEL', False):
+    import shutil
+    for folder in ['data/processed', 'models', 'database']:
+        src = os.path.join(config.BASE_DIR, folder)
+        dest = os.path.join('/tmp', folder)
+        if os.path.exists(src) and not os.path.exists(dest):
+            shutil.copytree(src, dest, dirs_exist_ok=True)
+
 # Ensure required directories exist
 for path in [config.DATA_RAW_DIR, config.DATA_PROCESSED_DIR, config.MODELS_DIR]:
     os.makedirs(path, exist_ok=True)
