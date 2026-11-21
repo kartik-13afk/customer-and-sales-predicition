@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block page_title %}Reports & Dataset Exports{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-saas">
+            <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-arrow-down text-primary me-2"></i>Export Project Artifacts</h5>
+            <p class="text-muted small">Download processed datasets and ML-generated customer classifications for external spreadsheet analysis, marketing automation, or academic presentation.</p>
+
+            <div class="list-group list-group-flush border rounded mb-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <div class="fw-bold mb-1"><i class="bi bi-filetype-csv text-success me-2"></i> Final Segmented Customers (With Marketing Playbooks)</div>
+                        <small class="text-muted">Contains Customer IDs, RFM Metrics, Cluster IDs, Segment Names, and Assigned Marketing Strategies.</small>
+                    </div>
+                    <a href="{{ url_for('download_file', filename='final_customer_segments.csv') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> Download CSV
+                    </a>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <div class="fw-bold mb-1"><i class="bi bi-filetype-csv text-primary me-2"></i> RFM Feature Matrix (Customer-Level)</div>
+                        <small class="text-muted">Customer-level Recency, Frequency, Monetary values with quantile scores (1 to 5) and log transformations.</small>
+                    </div>
+                    <a href="{{ url_for('download_file', filename='customer_rfm.csv') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> Download CSV
+                    </a>
+                </div>
+
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <div class="fw-bold mb-1"><i class="bi bi-filetype-csv text-warning me-2"></i> Cleaned Transaction Logs</div>
+                        <small class="text-muted">Preprocessed transaction data with invalid prices, cancelled orders, and guest checkouts filtered.</small>
+                    </div>
+                    <a href="{{ url_for('download_file', filename='cleaned_transactions.csv') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> Download CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-journal-text text-info me-2"></i>System Methodology</h5>
+            <div class="small text-muted">
+                <p><strong>1. Data Ingestion:</strong> Ingests high-volume retail transactions, automatically mapping arbitrary schemas.</p>
+                <p><strong>2. RFM Modeling:</strong> Aggregates transactions into 3 behavioral dimensions: Recency (days), Frequency (visits), Monetary (spend).</p>
+                <p><strong>3. Skew Handling:</strong> Applies \( \log(1 + x) \) to handle heavy right-skewed sales distributions.</p>
+                <p><strong>4. Unsupervised Clustering:</strong> Deploys K-Means with K-Means++ centroid initialization and Silhouette score evaluation.</p>
+                <p><strong>5. Recommendation Engine:</strong> Maps cluster centroids to distinct commercial strategies with actionable promotional tactics.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

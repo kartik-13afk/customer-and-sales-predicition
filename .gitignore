@@ -1,0 +1,26 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.Python
+
+# Local SQLite Database (auto-generated on app startup)
+database/*.db
+*.sqlite3
+
+# Logs & Temporary files
+*.log
+.system_generated/
+
+# Editor & OS settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

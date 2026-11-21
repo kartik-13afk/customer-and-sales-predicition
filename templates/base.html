@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Customer Segmentation System{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.get('user_id') %}
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-pie-chart-fill text-primary fs-4"></i>
+            <div>
+                <span class="d-block lh-1">SegmentAI</span>
+                <small class="text-secondary fw-normal fs-6" style="font-size: 0.72rem !important;">Analytics & Strategy</small>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu">
+            {% if session.get('role') == 'admin' %}
+            <li class="sidebar-heading">Data Science Studio</li>
+            <li class="sidebar-item {% if active_page == 'admin_dashboard' %}active{% endif %}">
+                <a href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Executive Overview</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_upload' %}active{% endif %}">
+                <a href="{{ url_for('admin_upload') }}"><i class="bi bi-cloud-arrow-up"></i> Upload Dataset</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_preview' %}active{% endif %}">
+                <a href="{{ url_for('admin_preview') }}"><i class="bi bi-table"></i> Data Inspection</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_eda' %}active{% endif %}">
+                <a href="{{ url_for('admin_eda') }}"><i class="bi bi-bar-chart-line"></i> Exploratory Data (EDA)</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_rfm' %}active{% endif %}">
+                <a href="{{ url_for('admin_rfm') }}"><i class="bi bi-gem"></i> RFM Feature Engine</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_ml' %}active{% endif %}">
+                <a href="{{ url_for('admin_ml') }}"><i class="bi bi-cpu"></i> K-Means ML Studio</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'admin_recommendations' %}active{% endif %}">
+                <a href="{{ url_for('admin_recommendations') }}"><i class="bi bi-bullseye"></i> Strategy & Segments</a>
+            </li>
+            {% endif %}
+
+            <li class="sidebar-heading">Seller Business Center</li>
+            <li class="sidebar-item {% if active_page == 'seller_dashboard' %}active{% endif %}">
+                <a href="{{ url_for('seller_dashboard') }}"><i class="bi bi-shop"></i> Business Insights</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'seller_customers' %}active{% endif %}">
+                <a href="{{ url_for('seller_customers') }}"><i class="bi bi-people"></i> Customer Segments</a>
+            </li>
+            <li class="sidebar-item {% if active_page == 'reports' %}active{% endif %}">
+                <a href="{{ url_for('reports_view') }}"><i class="bi bi-file-earmark-arrow-down"></i> Reports & Export</a>
+            </li>
+        </ul>
+    </aside>
+
+    <div class="main-content">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="mb-0 fw-bold">{% block page_title %}Dashboard{% endblock %}</h5>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-light text-dark border px-3 py-2">
+                    <i class="bi bi-person-circle me-1 text-primary"></i> 
+                    {{ session.get('username') | capitalize }} ({{ session.get('role') | upper }})
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </header>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+    {% else %}
+    <main>
+        {% block auth_content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

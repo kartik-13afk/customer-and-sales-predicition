@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block page_title %}Machine Learning & Cluster Modeling Studio{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-1"><i class="bi bi-bezier2 text-primary me-2"></i>Elbow Method (WCSS / Inertia)</h5>
+            <small class="text-muted d-block mb-3">Identifies diminishing returns where additional clusters yield negligible variance reduction.</small>
+            <canvas id="elbowChart" height="220"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-1"><i class="bi bi-activity text-info me-2"></i>Silhouette Score Evaluation</h5>
+            <small class="text-muted d-block mb-3">Measures how well-separated and tightly cohesive the clusters are (ranges from -1 to +1).</small>
+            <canvas id="silhouetteChart" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card card-saas mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h5 class="fw-bold mb-0"><i class="bi bi-sliders text-success me-2"></i>Active Model Configuration</h5>
+            <small class="text-muted">Selected <strong>K = {{ active_k }}</strong> | Silhouette Score: <strong>{{ sil_score }}</strong> | Inertia: <strong>{{ "{:,.2f}".format(inertia) }}</strong></small>
+        </div>
+        <form action="{{ url_for('retrain_model') }}" method="POST" class="d-flex align-items-center gap-2">
+            <label class="small fw-bold">Select K:</label>
+            <select name="k_clusters" class="form-select form-select-sm" style="width: 100px;">
+                {% for k in [2, 3, 4, 5, 6, 7, 8] %}
+                <option value="{{ k }}" {% if k == active_k %}selected{% endif %}>K = {{ k }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary-saas">
+                <i class="bi bi-arrow-repeat me-1"></i> Retrain Model
+            </button>
+            <a href="{{ url_for('admin_recommendations') }}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-bullseye me-1"></i> View Segment Strategies
+            </a>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-1"><i class="bi bi-scatter-chart text-purple me-2" style="color: #8b5cf6;"></i>2D PCA Cluster Scatter Visualization</h5>
+            <small class="text-muted d-block mb-3">Principal Component Analysis (PCA) projection of multi-dimensional log-scaled RFM space.</small>
+            <canvas id="pcaScatterChart" height="280"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart text-warning me-2"></i>Customer Distribution</h5>
+            <canvas id="clusterPieChart" height="280"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card card-saas">
+    <h5 class="fw-bold mb-3"><i class="bi bi-clipboard-data text-primary me-2"></i>Cluster Behavioral Centroid Profiles</h5>
+    <div class="table-responsive">
+        <table class="table table-hover table-saas small">
+            <thead>
+                <tr>
+                    <th>Cluster ID</th>
+                    <th>Customer Count</th>
+                    <th>Mean Recency</th>
+                    <th>Mean Orders</th>
+                    <th>Mean Spend</th>
+                    <th>Total Revenue Contribution</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in profiles %}
+                <tr>
+                    <td><span class="badge bg-dark">Cluster #{{ p.cluster_id }}</span></td>
+                    <td><strong>{{ "{:,}".format(p.customer_count) }}</strong></td>
+                    <td>{{ "{:.1f}".format(p.mean_recency) }} days</td>
+                    <td>{{ "{:.1f}".format(p.mean_frequency) }} visits</td>
+                    <td class="text-success fw-bold">${{ "{:,.2f}".format(p.mean_monetary) }}</td>
+                    <td class="fw-bold">${{ "{:,.2f}".format(p.total_revenue) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const evalData = {{ eval_results | tojson | safe if eval_results else '{}' }};
+    const profilesData = {{ profiles | tojson | safe if profiles else '[]' }};
+    const pcaPoints = {{ pca_sample | tojson | safe if pca_sample else '[]' }};
+
+    const clusterColors = ['#10b981', '#3b82f6', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
+
+    // 1. Elbow Chart
+    if (evalData.k_values) {
+        new Chart(document.getElementById('elbowChart'), {
+            type: 'line',
+            data: {
+                labels: evalData.k_values,
+                datasets: [{
+                    label: 'WCSS (Inertia)',
+                    data: evalData.inertias,
+                    borderColor: '#4f46e5',
+                    tension: 0.2,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#4f46e5'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Number of Clusters (K)' } },
+                    y: { title: { display: true, text: 'Inertia / WCSS' } }
+                }
+            }
+        });
+
+        // 2. Silhouette Chart
+        new Chart(document.getElementById('silhouetteChart'), {
+            type: 'bar',
+            data: {
+                labels: evalData.k_values,
+                datasets: [{
+                    label: 'Silhouette Score',
+                    data: evalData.silhouette_scores,
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Number of Clusters (K)' } },
+                    y: { title: { display: true, text: 'Silhouette Score' }, min: 0 }
+                }
+            }
+        });
+    }
+
+    // 3. Cluster Pie Chart
+    if (profilesData.length > 0) {
+        new Chart(document.getElementById('clusterPieChart'), {
+            type: 'pie',
+            data: {
+                labels: profilesData.map(p => `Cluster ${p.cluster_id}`),
+                datasets: [{
+                    data: profilesData.map(p => p.customer_count),
+                    backgroundColor: clusterColors.slice(0, profilesData.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 4. 2D PCA Scatter Chart
+    if (pcaPoints.length > 0) {
+        // Group points by cluster_id
+        const datasets = [];
+        const uniqueClusters = [...new Set(pcaPoints.map(pt => pt.cluster_id))];
+        
+        uniqueClusters.forEach(cid => {
+            const pts = pcaPoints.filter(pt => pt.cluster_id === cid).map(pt => ({ x: pt.pca_x, y: pt.pca_y }));
+            datasets.push({
+                label: `Cluster ${cid}`,
+                data: pts,
+                backgroundColor: clusterColors[cid % clusterColors.length],
+                pointRadius: 4,
+                pointHoverRadius: 6
+            });
+        });
+
+        new Chart(document.getElementById('pcaScatterChart'), {
+            type: 'scatter',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    x: { title: { display: true, text: 'Principal Component 1 (PCA 1)' } },
+                    y: { title: { display: true, text: 'Principal Component 2 (PCA 2)' } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

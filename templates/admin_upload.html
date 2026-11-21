@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block page_title %}Dataset Ingestion & Management{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card card-saas">
+            <h5 class="fw-bold mb-3"><i class="bi bi-cloud-arrow-up text-primary me-2"></i>Upload Transaction Dataset</h5>
+            <p class="text-muted small">Upload an e-commerce or supermarket transaction CSV file. Maximum file size is 64 MB.</p>
+            
+            <form action="{{ url_for('admin_upload') }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold">Choose CSV File</label>
+                    <input class="form-control" type="file" name="dataset_file" accept=".csv" required>
+                    <div class="form-text">Must contain transaction rows with Invoice, Customer ID, Quantity, Price, and Date.</div>
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary-saas px-4">
+                        <i class="bi bi-upload me-1"></i> Upload & Process CSV
+                    </button>
+                </div>
+            </form>
+
+            <hr class="my-4">
+
+            <div class="bg-light p-3 rounded border">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1"><i class="bi bi-magic text-warning me-1"></i> Use Default Retail Dataset</h6>
+                        <small class="text-muted">Load the bundled 541,910-row Supermarket transaction dataset for instant demonstration.</small>
+                    </div>
+                    <form action="{{ url_for('load_sample_dataset') }}" method="POST">
+                        <button type="submit" class="btn btn-sm btn-outline-dark">
+                            <i class="bi bi-play-circle me-1"></i> Load Sample Data
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-info-circle text-info me-2"></i>Expected CSV Schema</h5>
+            <p class="small text-muted">The system automatically standardizes column aliases, handling common column naming conventions:</p>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-saas small">
+                    <thead>
+                        <tr>
+                            <th>Expected Column</th>
+                            <th>Supported Aliases</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>invoice_no</code></td>
+                            <td>Invoice, InvoiceNo, OrderID</td>
+                        </tr>
+                        <tr>
+                            <td><code>customer_id</code></td>
+                            <td>CustomerID, Customer ID, UserID</td>
+                        </tr>
+                        <tr>
+                            <td><code>quantity</code></td>
+                            <td>Quantity, Qty, Units</td>
+                        </tr>
+                        <tr>
+                            <td><code>unit_price</code></td>
+                            <td>Price, UnitPrice, Rate</td>
+                        </tr>
+                        <tr>
+                            <td><code>invoice_date</code></td>
+                            <td>InvoiceDate, Date, Timestamp</td>
+                        </tr>
+                        <tr>
+                            <td><code>country</code></td>
+                            <td>Country, Region, Location</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="alert alert-secondary py-2 small mb-0 mt-3">
+                <i class="bi bi-shield-check text-success me-1"></i> <strong>Automated Sanitization:</strong> Null Customer IDs, cancelled invoices (InvoiceNo with 'C'), negative quantities, and duplicate lines are automatically audited and filtered.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

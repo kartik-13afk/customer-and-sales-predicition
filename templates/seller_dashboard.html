@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block page_title %}Seller & Business Performance Dashboard{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(total_revenue) }}</div>
+                <div class="kpi-lbl">Lifetime Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+                <div class="kpi-val">{{ "{:,}".format(total_customers) }}</div>
+                <div class="kpi-lbl">Customer Accounts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-cart3"></i>
+            </div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(avg_order_value) }}</div>
+                <div class="kpi-lbl">Average Basket Size</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-star-fill"></i>
+            </div>
+            <div>
+                <div class="kpi-val">{{ "{:,}".format(champions_count) }}</div>
+                <div class="kpi-lbl">VIP Champions</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-saas mb-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>High-Priority Growth & Retention Opportunities</h5>
+    <div class="row g-3">
+        {% for opp in opportunities %}
+        <div class="col-md-4">
+            <div class="p-3 border rounded bg-white h-100 border-start border-4 border-{{ opp.badge_color }}">
+                <span class="badge bg-{{ opp.badge_color }} mb-2">{{ opp.segment_label }}</span>
+                <h6 class="fw-bold mb-1">{{ opp.title }}</h6>
+                <p class="small text-muted mb-2">{{ opp.summary }}</p>
+                <div class="p-2 bg-light rounded small mb-2">
+                    <strong>Recommended Offer:</strong> {{ opp.offer }}
+                </div>
+                <a href="{{ url_for('seller_customers', segment=opp.segment_label) }}" class="btn btn-sm btn-outline-dark w-100">
+                    <i class="bi bi-person-lines-fill me-1"></i> View Customers ({{ opp.count }})
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Customer Segment Composition</h5>
+            <canvas id="sellerSegmentDonut" height="240"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-currency-dollar text-success me-2"></i>Revenue Contribution by Segment</h5>
+            <canvas id="sellerRevenueBar" height="240"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const segmentData = {{ segment_summary | tojson | safe if segment_summary else '[]' }};
+    if (segmentData.length > 0) {
+        const labels = segmentData.map(s => s.segment_label);
+        const counts = segmentData.map(s => s.customer_count);
+        const revenues = segmentData.map(s => s.total_revenue);
+
+        new Chart(document.getElementById('sellerSegmentDonut'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: ['#10b981', '#3b82f6', '#06b6d4', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        new Chart(document.getElementById('sellerRevenueBar'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: revenues,
+                    backgroundColor: ['#10b981', '#3b82f6', '#06b6d4', '#f59e0b', '#ef4444'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+</script>
+{% endblock %}

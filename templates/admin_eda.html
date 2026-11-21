@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block page_title %}Exploratory Data Analysis (EDA){% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-cash-stack"></i></div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(eda.kpis.total_revenue) if eda else '0.00' }}</div>
+                <div class="kpi-lbl">Total Gross Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-cart-check"></i></div>
+            <div>
+                <div class="kpi-val">{{ "{:,}".format(eda.kpis.total_transactions) if eda else '0' }}</div>
+                <div class="kpi-lbl">Total Orders / Invoices</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-basket3"></i></div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(eda.kpis.avg_order_value) if eda else '0.00' }}</div>
+                <div class="kpi-lbl">Avg Order Value (AOV)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="bi bi-wallet2"></i></div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(eda.kpis.avg_customer_spend) if eda else '0.00' }}</div>
+                <div class="kpi-lbl">Avg Spend Per Customer</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Monthly Revenue Velocity</h5>
+            <canvas id="monthlyTrendChart" height="240"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-globe text-info me-2"></i>Top 5 Geographic Markets</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-saas small">
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th class="text-end">Revenue ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in eda.country_breakdown[:5] if eda %}
+                        <tr>
+                            <td><strong>{{ c.country }}</strong></td>
+                            <td class="text-end text-success fw-bold">${{ "{:,.2f}".format(c.revenue) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-saas">
+    <h5 class="fw-bold mb-3"><i class="bi bi-star-fill text-warning me-2"></i>Top 10 High-Revenue Generating Products</h5>
+    <div class="table-responsive">
+        <table class="table table-hover table-saas small">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product Description</th>
+                    <th class="text-end">Revenue Contribution ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in eda.top_products_by_revenue if eda %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ p.product }}</strong></td>
+                    <td class="text-end text-success fw-bold">${{ "{:,.2f}".format(p.revenue) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const trendData = {{ eda.monthly_revenue_trend | tojson | safe if eda else '{}' }};
+    if (trendData.labels && trendData.labels.length > 0) {
+        new Chart(document.getElementById('monthlyTrendChart'), {
+            type: 'line',
+            data: {
+                labels: trendData.labels,
+                datasets: [{
+                    label: 'Monthly Revenue ($)',
+                    data: trendData.data,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#4f46e5'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+</script>
+{% endblock %}

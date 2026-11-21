@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block page_title %}Admin & Data Science Studio{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+                <div class="kpi-val">{{ "{:,}".format(stats.unique_customers) if stats else '0' }}</div>
+                <div class="kpi-lbl">Total Customers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div>
+                <div class="kpi-val">${{ "{:,.2f}".format(stats.total_revenue) if stats else '0.00' }}</div>
+                <div class="kpi-lbl">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div>
+                <div class="kpi-val">{{ "{:,}".format(stats.final_rows) if stats else '0' }}</div>
+                <div class="kpi-lbl">Clean Transactions</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-saas kpi-card">
+            <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-diagram-3-fill"></i>
+            </div>
+            <div>
+                <div class="kpi-val">{{ k_clusters if k_clusters else '4' }} Clusters</div>
+                <div class="kpi-lbl">Active ML Model</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-saas mb-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-diagram-2 text-primary me-2"></i>End-to-End Data Science Pipeline</h5>
+    <div class="row g-3">
+        <div class="col-md">
+            <div class="p-3 border rounded text-center bg-light">
+                <div class="fs-4 text-primary mb-1"><i class="bi bi-file-earmark-arrow-up"></i></div>
+                <div class="fw-bold small">1. Raw CSV Ingestion</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Upload & Schema Check</div>
+                <a href="{{ url_for('admin_upload') }}" class="btn btn-sm btn-outline-primary mt-2">Manage Upload</a>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="p-3 border rounded text-center bg-light">
+                <div class="fs-4 text-warning mb-1"><i class="bi bi-funnel"></i></div>
+                <div class="fw-bold small">2. Cleaning & Sanitization</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Nulls, Returns & Duplicates</div>
+                <a href="{{ url_for('admin_preview') }}" class="btn btn-sm btn-outline-warning mt-2">Inspect Data</a>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="p-3 border rounded text-center bg-light">
+                <div class="fs-4 text-info mb-1"><i class="bi bi-bar-chart"></i></div>
+                <div class="fw-bold small">3. Exploratory Analysis</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Revenue, Products, Countries</div>
+                <a href="{{ url_for('admin_eda') }}" class="btn btn-sm btn-outline-info mt-2">View Charts</a>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="p-3 border rounded text-center bg-light">
+                <div class="fs-4 text-success mb-1"><i class="bi bi-gem"></i></div>
+                <div class="fw-bold small">4. RFM Feature Matrix</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Recency, Frequency, Spend</div>
+                <a href="{{ url_for('admin_rfm') }}" class="btn btn-sm btn-outline-success mt-2">RFM Studio</a>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="p-3 border rounded text-center bg-light">
+                <div class="fs-4 text-purple mb-1" style="color: #8b5cf6;"><i class="bi bi-cpu"></i></div>
+                <div class="fw-bold small">5. K-Means Clustering</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Elbow, Silhouette, 2D PCA</div>
+                <a href="{{ url_for('admin_ml') }}" class="btn btn-sm btn-outline-dark mt-2">Run Models</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart text-primary me-2"></i>Customer Segment Share</h5>
+            <canvas id="segmentDonutChart" height="240"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-currency-dollar text-success me-2"></i>Revenue Contribution by Segment</h5>
+            <canvas id="revenueBarChart" height="240"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const segData = {{ segment_summary | tojson | safe if segment_summary else '[]' }};
+    if (segData.length > 0) {
+        const labels = segData.map(s => s.segment_label);
+        const counts = segData.map(s => s.customer_count);
+        const revenues = segData.map(s => s.total_revenue);
+
+        // Donut Chart
+        new Chart(document.getElementById('segmentDonutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: ['#10b981', '#3b82f6', '#06b6d4', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Revenue Bar Chart
+        new Chart(document.getElementById('revenueBarChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Revenue ($)',
+                    data: revenues,
+                    backgroundColor: ['#10b981', '#3b82f6', '#06b6d4', '#f59e0b', '#ef4444'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+</script>
+{% endblock %}

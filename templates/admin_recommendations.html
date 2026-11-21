@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block page_title %}Intelligent Marketing Strategy & Recommendation Engine{% endblock %}
+{% block content %}
+<div class="row g-4">
+    {% for s in strategies %}
+    <div class="col-lg-6">
+        <div class="card card-saas h-100 border-top border-4 border-{{ s.badge_color }}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-{{ s.badge_color }} badge-saas">{{ s.segment_label }}</span>
+                <span class="text-muted small">Cluster #{{ s.cluster_id }}</span>
+            </div>
+
+            <h5 class="fw-bold mb-1">{{ s.strategy_title }}</h5>
+            <p class="small text-muted mb-3">{{ s.objective }}</p>
+
+            <div class="row g-2 mb-3 bg-light p-2 rounded small">
+                <div class="col-4">
+                    <span class="text-muted d-block" style="font-size: 0.72rem;">CUSTOMERS</span>
+                    <strong>{{ "{:,}".format(s.customer_count) }}</strong>
+                </div>
+                <div class="col-4">
+                    <span class="text-muted d-block" style="font-size: 0.72rem;">AVG SPEND</span>
+                    <strong class="text-success">${{ "{:,.2f}".format(s.mean_monetary) }}</strong>
+                </div>
+                <div class="col-4">
+                    <span class="text-muted d-block" style="font-size: 0.72rem;">AVG RECENCY</span>
+                    <strong>{{ "{:.0f}".format(s.mean_recency) }} days</strong>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="small fw-bold text-dark mb-1"><i class="bi bi-tag-fill text-primary me-1"></i> Suggested Discount / Incentive:</div>
+                <div class="p-2 border rounded bg-white text-primary fw-semibold small">
+                    {{ s.suggested_discount }}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="small fw-bold text-dark mb-1"><i class="bi bi-broadcast text-info me-1"></i> Recommended Channels:</div>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for ch in s.channels %}
+                    <span class="badge bg-light text-dark border small">{{ ch }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <div class="small fw-bold text-dark mb-1"><i class="bi bi-check2-circle text-success me-1"></i> Recommended Tactical Actions:</div>
+                <ul class="list-unstyled mb-0 small">
+                    {% for action in s.action_plan %}
+                    <li class="mb-1 d-flex align-items-start gap-2">
+                        <i class="bi bi-arrow-right-short text-primary fs-6"></i>
+                        <span>{{ action }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
