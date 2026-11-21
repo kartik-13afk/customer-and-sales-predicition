@@ -26,6 +26,24 @@ from src.recommendations.engine import (
 app = Flask(__name__)
 app.config.from_object(config)
 
+# WSGI Middleware to handle Vercel serverless routing
+class VercelPathFixMiddleware:
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        if path.startswith('/api/index') or path == '/api':
+            # Vercel passes the original URL in HTTP_X_MATCHED_PATH or HTTP_X_FORWARDED_URI
+            matched = environ.get('HTTP_X_MATCHED_PATH') or environ.get('HTTP_X_FORWARDED_URI')
+            if matched:
+                environ['PATH_INFO'] = matched
+            else:
+                environ['PATH_INFO'] = '/'
+        return self.wsgi_app(environ, start_response)
+
+app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
+
 # If running on Vercel serverless, sync precomputed assets to writable /tmp
 if getattr(config, 'IS_VERCEL', False):
     import shutil
