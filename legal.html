@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Terms of Service' if doc == 'terms' else 'Privacy Policy' }} | SegmentAI{% endblock %}
+{% block page_title %}{{ 'Terms of Service' if doc == 'terms' else 'Privacy Policy' }}{% endblock %}
+
+{% macro body() %}
+<div class="legal-doc">
+{% if doc == 'terms' %}
+    <p>SegmentAI is a student analytics project. By using it you agree to the points below.</p>
+    <h2>Use of the service</h2>
+    <p>Use the platform only with data you have the right to analyse. Do not upload data that identifies people unless you have their consent.</p>
+    <h2>Accounts</h2>
+    <p>You are responsible for your login. Demo accounts are public and must not be used for real business data.</p>
+    <h2>No guarantees</h2>
+    <p>Segments and recommendations come from statistical models and can be wrong. Review them before acting on them. The service is provided as is.</p>
+    <h2>Changes</h2>
+    <p>These terms may be updated as the project changes.</p>
+{% else %}
+    <p>This page explains what SegmentAI stores and why.</p>
+    <h2>What we store</h2>
+    <p>Your username, a hashed password, your role, and the CSV files you upload together with the segments computed from them.</p>
+    <h2>How it is used</h2>
+    <p>Uploaded data is used only to produce your dashboards, segments and exports. It is not sold or shared with third parties.</p>
+    <h2>Storage and deletion</h2>
+    <p>Data is kept in the application's database and file storage. Ask the project owner to delete your account and uploads at any time.</p>
+    <h2>Third-party resources</h2>
+    <p>Pages load fonts and chart libraries from public content networks, which can see your IP address when you load a page.</p>
+{% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}<div class="card-saas">{{ body() }}</div>{% endblock %}
+{% block auth_content %}<div class="container py-5">{{ body() }}<p class="mt-4"><a href="{{ url_for('login') }}">Back to sign in</a></p></div>{% endblock %}

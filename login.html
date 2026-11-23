@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Sign in | SegmentAI{% endblock %}
+{% block auth_content %}
+<div class="auth-wrap">
+    <section class="auth-intro">
+        <h1>Know which customers to keep, win back, or let go.</h1>
+        <p>SegmentAI reads your transaction history, scores every customer on recency, frequency and spend, groups them with K-Means, and returns a marketing plan for each group.</p>
+        <ul class="segment-list">
+            <li><strong>Champions</strong><span>Recent, frequent, high spend</span></li>
+            <li><strong>Loyalists</strong><span>Steady repeat buyers</span></li>
+            <li><strong>Potential Loyalists</strong><span>Recent buyers still building a habit</span></li>
+            <li><strong>At-Risk</strong><span>Good history, gone quiet</span></li>
+            <li><strong>Lost Customers</strong><span>Long absent, low recent value</span></li>
+        </ul>
+    </section>
+
+    <section class="auth-form">
+        <div class="inner">
+            <h4 class="mb-4">Sign in</h4>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} small py-2" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2">Sign in</button>
+            </form>
+
+            <div class="demo-box">
+                Demo accounts<br>
+                Admin: admin / admin123<br>
+                Seller: seller / seller123
+            </div>
+
+            <p class="small mb-0">No account yet? <a href="{{ url_for('register') }}">Register</a></p>
+
+            <div class="legal-links">
+                <a href="{{ url_for('terms') }}">Terms of Service</a><a href="{{ url_for('privacy') }}">Privacy Policy</a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

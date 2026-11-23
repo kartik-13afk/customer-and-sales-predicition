@@ -662,6 +662,15 @@ def export_customers_csv():
         headers={"Content-Disposition": f"attachment;filename={fname}"}
     )
 
+# --- Legal pages ---
+@app.route('/terms')
+def terms():
+    return render_template('legal.html', doc='terms')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('legal.html', doc='privacy')
+
 if __name__ == '__main__':
     # Initial sample check: if processed files don't exist yet, process raw sample dataset
     cleaned_file, _, seg_file, _ = get_processed_files()
