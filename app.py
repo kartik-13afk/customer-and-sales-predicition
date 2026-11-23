@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import json
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
 from functools import wraps
@@ -81,6 +82,22 @@ def admin_required(f):
             return redirect(url_for('seller_dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+# Rate limiting for seller dataset uploads (3 CSVs per rolling 7 days)
+MAX_SELLER_UPLOADS_PER_WEEK = 3
+
+def get_user_weekly_upload_count(user_id):
+    """
+    Returns the number of CSV datasets uploaded by the user within the last 7 days.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+    conn = get_db_connection()
+    row = conn.execute(
+        "SELECT COUNT(*) FROM datasets WHERE user_id = ? AND uploaded_at >= ?",
+        (user_id, cutoff)
+    ).fetchone()
+    conn.close()
+    return int(row[0]) if row else 0
 
 # --- Global Pipeline Helpers ---
 def get_processed_files():
@@ -257,7 +274,18 @@ def admin_upload():
             file.save(save_path)
             flash(f'File "{fname}" uploaded successfully. Running data science pipeline...', 'info')
             try:
-                run_full_pipeline(save_path)
+                cleaning_stats, final_df, strategies = run_full_pipeline(save_path)
+                
+                # Record in datasets table
+                conn = get_db_connection()
+                conn.execute(
+                    """INSERT INTO datasets (user_id, filename, file_path, total_rows, total_customers, status)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (session.get('user_id'), fname, save_path, cleaning_stats.get('final_rows', 0), cleaning_stats.get('unique_customers', 0), 'processed')
+                )
+                conn.commit()
+                conn.close()
+
                 flash('Pipeline execution completed! Preprocessing, RFM, and ML models are ready.', 'success')
                 return redirect(url_for('admin_preview'))
             except Exception as e:
@@ -430,8 +458,12 @@ def seller_dashboard():
     strat_json = os.path.join(config.DATA_PROCESSED_DIR, 'segment_strategies.json')
     stats_json = os.path.join(config.DATA_PROCESSED_DIR, 'cleaning_stats.json')
 
+    user_id = session.get('user_id')
+    uploads_used = get_user_weekly_upload_count(user_id) if session.get('role') == 'seller' else 0
+    uploads_remaining = max(0, MAX_SELLER_UPLOADS_PER_WEEK - uploads_used)
+
     if not os.path.exists(strat_json):
-        flash('No analytics data available yet. Please ask an Admin to upload a dataset.', 'info')
+        flash('No analytics data available yet. You can upload your store sales CSV below.', 'info')
         return render_template(
             'seller_dashboard.html',
             active_page='seller_dashboard',
@@ -440,7 +472,10 @@ def seller_dashboard():
             avg_order_value=0.0,
             champions_count=0,
             opportunities=[],
-            segment_summary=[]
+            segment_summary=[],
+            uploads_used=uploads_used,
+            uploads_remaining=uploads_remaining,
+            max_uploads=MAX_SELLER_UPLOADS_PER_WEEK
         )
 
     with open(strat_json, 'r', encoding='utf-8') as f:
@@ -478,7 +513,75 @@ def seller_dashboard():
         avg_order_value=avg_order_value,
         champions_count=champions_count,
         opportunities=opportunities,
-        segment_summary=segment_summary
+        segment_summary=segment_summary,
+        uploads_used=uploads_used,
+        uploads_remaining=uploads_remaining,
+        max_uploads=MAX_SELLER_UPLOADS_PER_WEEK
+    )
+
+@app.route('/seller/upload', methods=['GET', 'POST'])
+@login_required
+def seller_upload():
+    user_id = session.get('user_id')
+    is_seller = (session.get('role') == 'seller')
+    uploads_used = get_user_weekly_upload_count(user_id) if is_seller else 0
+    uploads_remaining = max(0, MAX_SELLER_UPLOADS_PER_WEEK - uploads_used)
+
+    if request.method == 'POST':
+        # Enforce rate limit of 3 uploads per week for sellers
+        if is_seller and uploads_used >= MAX_SELLER_UPLOADS_PER_WEEK:
+            flash('Weekly upload limit reached! Sellers are limited to 3 CSV uploads per week.', 'warning')
+            return redirect(url_for('seller_upload'))
+
+        if 'dataset_file' not in request.files:
+            flash('No file part selected.', 'warning')
+            return redirect(request.url)
+
+        file = request.files['dataset_file']
+        if file.filename == '':
+            flash('No file selected.', 'warning')
+            return redirect(request.url)
+
+        if file and file.filename.endswith('.csv'):
+            fname = secure_filename(file.filename)
+            save_path = os.path.join(config.DATA_RAW_DIR, fname)
+            file.save(save_path)
+            try:
+                cleaning_stats, final_df, strategies = run_full_pipeline(save_path)
+
+                # Record dataset upload
+                conn = get_db_connection()
+                conn.execute(
+                    """INSERT INTO datasets (user_id, filename, file_path, total_rows, total_customers, status)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (user_id, fname, save_path, cleaning_stats.get('final_rows', 0), cleaning_stats.get('unique_customers', 0), 'processed')
+                )
+                conn.commit()
+                conn.close()
+
+                new_remaining = max(0, MAX_SELLER_UPLOADS_PER_WEEK - (uploads_used + 1)) if is_seller else 999
+                flash(f'Dataset "{fname}" successfully uploaded and analyzed! You have {new_remaining} of {MAX_SELLER_UPLOADS_PER_WEEK} uploads remaining this week.', 'success')
+                return redirect(url_for('seller_dashboard'))
+            except Exception as e:
+                flash(f'Error processing dataset: {str(e)}', 'danger')
+        else:
+            flash('Only CSV format files are supported.', 'danger')
+
+    # Fetch recent uploads by this user
+    conn = get_db_connection()
+    recent_uploads = conn.execute(
+        "SELECT filename, uploaded_at, total_rows, total_customers FROM datasets WHERE user_id = ? ORDER BY uploaded_at DESC LIMIT 5",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+
+    return render_template(
+        'seller_upload.html',
+        active_page='seller_upload',
+        uploads_used=uploads_used,
+        uploads_remaining=uploads_remaining,
+        max_uploads=MAX_SELLER_UPLOADS_PER_WEEK,
+        recent_uploads=recent_uploads
     )
 
 @app.route('/seller/customers')

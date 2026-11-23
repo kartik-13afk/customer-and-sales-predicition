@@ -128,5 +128,33 @@ class TestCustomerSegmentationSystem(unittest.TestCase):
         login_res = self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
         self.assertEqual(login_res.status_code, 200)
 
+    def test_07_seller_weekly_upload_limit(self):
+        """Verifies that sellers are rate-limited to 3 CSV uploads per week."""
+        from app import get_user_weekly_upload_count, MAX_SELLER_UPLOADS_PER_WEEK
+        conn = get_db_connection()
+        seller = conn.execute("SELECT id FROM users WHERE username = 'seller'").fetchone()
+        seller_id = seller['id']
+
+        # Clear existing test uploads for clean test
+        conn.execute("DELETE FROM datasets WHERE user_id = ?", (seller_id,))
+        conn.commit()
+
+        # Initial count should be 0
+        self.assertEqual(get_user_weekly_upload_count(seller_id), 0)
+
+        # Insert 3 simulated uploads
+        for i in range(3):
+            conn.execute(
+                "INSERT INTO datasets (user_id, filename, file_path, total_rows, total_customers, status) VALUES (?, ?, ?, ?, ?, ?)",
+                (seller_id, f"test_{i}.csv", "path", 100, 10, "processed")
+            )
+        conn.commit()
+        conn.close()
+
+        # Count should now be 3 (limit reached)
+        count = get_user_weekly_upload_count(seller_id)
+        self.assertEqual(count, 3)
+        self.assertEqual(MAX_SELLER_UPLOADS_PER_WEEK, 3)
+
 if __name__ == '__main__':
     unittest.main()

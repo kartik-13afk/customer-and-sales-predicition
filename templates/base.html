@@ -55,6 +55,9 @@
             <li class="sidebar-item {% if active_page == 'seller_dashboard' %}active{% endif %}">
                 <a href="{{ url_for('seller_dashboard') }}"><i class="bi bi-shop"></i> Business Insights</a>
             </li>
+            <li class="sidebar-item {% if active_page == 'seller_upload' %}active{% endif %}">
+                <a href="{{ url_for('seller_upload') }}"><i class="bi bi-cloud-arrow-up"></i> Upload Sales CSV</a>
+            </li>
             <li class="sidebar-item {% if active_page == 'seller_customers' %}active{% endif %}">
                 <a href="{{ url_for('seller_customers') }}"><i class="bi bi-people"></i> Customer Segments</a>
             </li>

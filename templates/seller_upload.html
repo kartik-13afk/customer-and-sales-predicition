@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block page_title %}Seller Sales Data Upload{% endblock %}
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card card-saas">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-cloud-arrow-up text-primary me-2"></i>Upload Store Sales CSV</h5>
+                <span class="badge {% if uploads_remaining > 1 %}bg-success{% elif uploads_remaining == 1 %}bg-warning text-dark{% else %}bg-danger{% endif %} badge-saas">
+                    {{ uploads_remaining }} of {{ max_uploads }} Uploads Remaining
+                </span>
+            </div>
+            
+            <p class="text-muted small">Upload your store's recent sales or customer transaction CSV. The system will automatically clean the data, recalculate RFM scores, and refresh your customer marketing segments.</p>
+            
+            <!-- Quota meter -->
+            <div class="p-3 bg-light rounded border mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2 small">
+                    <span class="fw-semibold"><i class="bi bi-speedometer2 text-primary me-1"></i> Weekly Upload Allowance</span>
+                    <span class="text-muted">{{ uploads_used }} used / {{ max_uploads }} allowed per rolling 7-day period</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar {% if uploads_remaining == 0 %}bg-danger{% elif uploads_remaining == 1 %}bg-warning{% else %}bg-primary{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ (uploads_used / max_uploads) * 100 }}%;" 
+                         aria-valuenow="{{ uploads_used }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="{{ max_uploads }}">
+                    </div>
+                </div>
+                {% if uploads_remaining == 0 %}
+                <div class="alert alert-warning py-2 px-3 small mt-3 mb-0">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    <strong>Weekly limit reached (3/3):</strong> You have used all 3 allowed uploads for this week. Your quota will reset 7 days after your oldest upload.
+                </div>
+                {% endif %}
+            </div>
+
+            <form action="{{ url_for('seller_upload') }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold">Choose CSV File</label>
+                    <input class="form-control" type="file" name="dataset_file" accept=".csv" required {% if uploads_remaining == 0 %}disabled{% endif %}>
+                    <div class="form-text">Supported formats: CSV (up to 64 MB). Must contain Order ID, Customer ID, Date, Quantity, and Price.</div>
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary-saas px-4" {% if uploads_remaining == 0 %}disabled{% endif %}>
+                        <i class="bi bi-upload me-1"></i> Upload & Analyze Store CSV
+                    </button>
+                    <a href="{{ url_for('seller_dashboard') }}" class="btn btn-outline-secondary">
+                        Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        {% if recent_uploads %}
+        <div class="card card-saas mt-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-secondary me-2"></i>Your Recent Upload History</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-saas small">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Uploaded On</th>
+                            <th>Clean Rows</th>
+                            <th>Customers</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for up in recent_uploads %}
+                        <tr>
+                            <td><code>{{ up.filename }}</code></td>
+                            <td>{{ up.uploaded_at }}</td>
+                            <td>{{ "{:,}".format(up.total_rows) }}</td>
+                            <td>{{ "{:,}".format(up.total_customers) }}</td>
+                            <td><span class="badge bg-success bg-opacity-75">Processed</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card card-saas h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-info-circle text-info me-2"></i>CSV File Requirements</h5>
+            <p class="small text-muted">The system automatically detects columns even if your spreadsheet uses slightly different headers:</p>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-saas small">
+                    <thead>
+                        <tr>
+                            <th>Required Field</th>
+                            <th>Accepted Column Names</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Order ID</strong></td>
+                            <td><code>InvoiceNo</code>, <code>Invoice</code>, <code>OrderID</code>, <code>TransactionID</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Customer ID</strong></td>
+                            <td><code>CustomerID</code>, <code>Customer ID</code>, <code>UserID</code>, <code>ClientID</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date</strong></td>
+                            <td><code>InvoiceDate</code>, <code>Date</code>, <code>OrderDate</code>, <code>Timestamp</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Quantity</strong></td>
+                            <td><code>Quantity</code>, <code>Qty</code>, <code>Units</code>, <code>Count</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Price / Spend</strong></td>
+                            <td><code>UnitPrice</code>, <code>Price</code>, <code>Rate</code>, or <code>Total</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mt-3 mb-0">
+                <i class="bi bi-shield-check text-success me-1"></i> <strong>Automatic Cleaning:</strong> Cancelled orders, returns, guest checkouts, and duplicate rows are safely filtered so your marketing recommendations remain accurate.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
